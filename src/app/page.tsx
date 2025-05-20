@@ -172,16 +172,16 @@ export default function Home() {
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-medium mb-2">Basic SEO</h4>
                   <ul className="space-y-2">
-                    <li>Title: {results.playwright.seo.title || 'Missing'}</li>
-                    <li>Meta Description: {results.playwright.seo.metaDescription || 'Missing'}</li>
-                    <li>Images without Alt: {results.playwright.seo.images.withoutAlt}</li>
+                    <li><span className="font-semibold">Title</span>: {results.playwright.seo.title || 'Missing'}</li>
+                    <li><span className="font-semibold">Meta Description</span>: {results.playwright.seo.metaDescription || 'Missing'}</li>
+                    <li><span className="font-semibold">Images without Alt</span>: {results.playwright.seo.images.withoutAlt}</li>
                   </ul>
                 </div>
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-medium mb-2">Performance</h4>
                   <ul className="space-y-2">
-                    <li>Load Time: {(results.playwright.performance.loadTime / 1000).toFixed(2)}s</li>
-                    <li>DOM Content Loaded: {(results.playwright.performance.domContentLoaded / 1000).toFixed(2)}s</li>
+                    <li><span className="font-semibold">Load Time</span>: {(results.playwright.performance.loadTime / 1000).toFixed(2)}s</li>
+                    <li><span className="font-semibold">DOM Content Loaded</span>: {(results.playwright.performance.domContentLoaded / 1000).toFixed(2)}s</li>
                   </ul>
                 </div>
               </div>

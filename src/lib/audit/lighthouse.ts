@@ -61,7 +61,7 @@ export interface LighthouseAuditResult {
 export async function runLighthouseAudit(url: string): Promise<LighthouseAuditResult> {
   return new Promise((resolve, reject) => {
     console.log('Starting Lighthouse worker...');
-    const worker = new Worker(path.join(process.cwd(), 'src/lib/audit/lighthouse-worker.ts'), {
+    const worker = new Worker(path.join(process.cwd(), 'dist/lib/audit/lighthouse-worker.js'), {
       workerData: { url }
     });
 

@@ -13,15 +13,12 @@ const auditRequestSchema = z.object({
 
 export async function POST(request: Request) {
   console.log('=== AUDIT API ROUTE STARTED ===');
-  console.log('Timestamp:', new Date().toISOString());
   
   try {
     // Get client IP for rate limiting
     const headersList = await headers();
     const forwardedFor = headersList.get('x-forwarded-for') || '';
     const ip = forwardedFor.split(',')[0] || 'unknown';
-    console.log('Client IP:', ip);
-    console.log('All headers:', Object.fromEntries(headersList.entries()));
 
     // Check rate limit
     const rateLimitResult = rateLimit(ip);
@@ -61,14 +58,11 @@ export async function POST(request: Request) {
     }
 
     // Start the audit process
-    console.log('Starting audit process for URL:', url);
     const auditResults = await performAudit(url);
-    console.log('Audit completed successfully');
     console.log('Final results:', JSON.stringify(auditResults, null, 2));
 
     return NextResponse.json(auditResults);
   } catch (error) {
-    console.error('=== UNHANDLED ERROR IN API ROUTE ===');
     console.error('Error occurred at:', new Date().toISOString());
     
     // Log the full error details
@@ -100,14 +94,8 @@ export async function POST(request: Request) {
 }
 
 async function performAudit(url: string) {
-  console.log('=== STARTING PERFORM AUDIT FUNCTION ===');
-  console.log('URL:', url);
-  console.log('Timestamp:', new Date().toISOString());
-  
   try {
-    // Run all audits in parallel
-    console.log('Running audits in parallel...');
-    
+    // Run all audits in parallel    
     const [playwrightResults, lighthouseResults, aiResults] = await Promise.all([
       runPlaywrightAudit(url).catch(error => {
         console.error('=== PLAYWRIGHT AUDIT FAILED ===');

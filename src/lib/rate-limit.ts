@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
-const MAX_REQUESTS = 10; // 10 requests per hour
+const MAX_REQUESTS = 100; // 10 requests per hour
 
 const ipRequests = new Map<string, { count: number; resetTime: number }>();
 

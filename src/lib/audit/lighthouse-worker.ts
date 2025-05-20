@@ -1,6 +1,4 @@
 import { parentPort, workerData } from 'worker_threads';
-import lighthouse from 'lighthouse/core/index.js';
-import * as chromeLauncher from 'chrome-launcher';
 import type { LighthouseAuditResult } from './lighthouse';
 
 interface WorkerData {
@@ -8,10 +6,11 @@ interface WorkerData {
 }
 
 async function runAudit() {
-  let chrome: chromeLauncher.LaunchedChrome | null = null;
+  let chrome: any = null;
   
   try {
     console.log('Launching Chrome for Lighthouse...');
+    const chromeLauncher = await import('chrome-launcher');
     chrome = await chromeLauncher.launch({
       chromeFlags: [
         '--headless=new',
@@ -26,12 +25,13 @@ async function runAudit() {
     });
 
     console.log('Running Lighthouse audit...');
+    const lighthouse = await import('lighthouse/core/index.js');
     const options = {
       port: chrome.port,
       onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo', 'pwa'],
-      logLevel: 'info',
-      output: 'json',
-      formFactor: 'desktop',
+      logLevel: 'info' as const,
+      output: 'json' as const,
+      formFactor: 'desktop' as const,
       screenEmulation: {
         mobile: false,
         width: 1350,
@@ -41,7 +41,7 @@ async function runAudit() {
       },
     };
 
-    const results = await lighthouse(workerData.url, options);
+    const results = await lighthouse.default(workerData.url, options);
 
     if (!results || !results.lhr) {
       throw new Error('Lighthouse results are undefined');
