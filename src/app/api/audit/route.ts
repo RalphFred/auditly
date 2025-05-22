@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { runPlaywrightAudit } from '@/lib/audit/playwright';
-import { runLighthouseAudit } from '@/lib/audit/lighthouse';
 import { runAIAudit } from '@/lib/audit/ai';
 import { rateLimit } from '@/lib/rate-limit';
 import { headers } from 'next/headers';
@@ -96,7 +95,7 @@ export async function POST(request: Request) {
 async function performAudit(url: string) {
   try {
     // Run all audits in parallel    
-    const [playwrightResults, lighthouseResults, aiResults] = await Promise.all([
+    const [playwrightResults, aiResults] = await Promise.all([
       runPlaywrightAudit(url).catch(error => {
         console.error('=== PLAYWRIGHT AUDIT FAILED ===');
         console.error('Error:', error);
@@ -132,20 +131,6 @@ async function performAudit(url: string) {
           },
         };
       }),
-      runLighthouseAudit(url).catch(error => {
-        console.error('=== LIGHTHOUSE AUDIT FAILED ===');
-        console.error('Error:', error);
-        console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
-        return {
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          performance: 0,
-          accessibility: 0,
-          bestPractices: 0,
-          seo: 0,
-          progressiveWebApp: 0,
-        };
-      }),
       runAIAudit(url).catch(error => {
         console.error('=== AI AUDIT FAILED ===');
         console.error('Error:', error);
@@ -165,14 +150,12 @@ async function performAudit(url: string) {
 
     console.log('All audits completed');
     console.log('Playwright results:', JSON.stringify(playwrightResults, null, 2));
-    console.log('Lighthouse results:', JSON.stringify(lighthouseResults, null, 2));
     console.log('AI results:', JSON.stringify(aiResults, null, 2));
     
     return {
       url,
       timestamp: new Date().toISOString(),
       playwright: playwrightResults,
-      lighthouse: lighthouseResults,
       ai: aiResults,
     };
   } catch (error) {

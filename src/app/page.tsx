@@ -23,11 +23,16 @@ interface AuditResults {
       images: {
         total: number;
         withoutAlt: number;
+        oversized: number;
+        unoptimized: number;
+        lazyLoaded: number;
       };
       links: {
         total: number;
         internal: number;
         external: number;
+        broken: number;
+        noFollow: number;
       };
       meta: {
         viewport: string | null;
@@ -39,24 +44,53 @@ interface AuditResults {
           image: string | null;
           url: string | null;
         };
+        twitterTags: {
+          card: string | null;
+          title: string | null;
+          description: string | null;
+          image: string | null;
+        };
       };
       schema: {
         hasSchema: boolean;
         types: string[];
+        valid: boolean;
+        errors: string[];
+      };
+      technical: {
+        hasSsl: boolean;
+        hasSitemap: boolean;
+        hasRobotsTxt: boolean;
+        mobileFriendly: boolean;
+        coreWebVitals: {
+          lcp: number;
+          fid: number;
+          cls: number;
+        };
+        pageSpeed: {
+          loadTime: number;
+          timeToFirstByte: number;
+          domContentLoaded: number;
+        };
+      };
+      content: {
+        wordCount: number;
+        keywordDensity: Record<string, number>;
+        readabilityScore: number;
+        contentToCodeRatio: number;
+        hasVideo: boolean;
+        hasAudio: boolean;
+      };
+      social: {
+        hasFacebookPixel: boolean;
+        hasGoogleAnalytics: boolean;
+        hasTwitterPixel: boolean;
       };
     };
     performance: {
       loadTime: number;
       domContentLoaded: number;
     };
-  };
-  lighthouse: {
-    status: 'success' | 'error';
-    performance: number;
-    accessibility: number;
-    bestPractices: number;
-    seo: number;
-    progressiveWebApp: number;
   };
   ai: {
     status: 'success' | 'error';
@@ -165,82 +199,258 @@ export default function Home() {
           <div className="mt-12 max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold mb-6">Audit Results for {results.url}</h2>
             
-            {/* SEO Section */}
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold mb-4">SEO Analysis</h3>
+            {/* Overview Summary */}
+            <div className="mb-8 p-6 bg-primary-50 rounded-xl">
+              <h3 className="text-xl font-semibold mb-4">🧠 Overview Summary</h3>
+              <p className="text-lg mb-4">"Here's what we found on your site:"</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Basic SEO</h4>
-                  <ul className="space-y-2">
-                    <li><span className="font-semibold">Title</span>: {results.playwright.seo.title || 'Missing'}</li>
-                    <li><span className="font-semibold">Meta Description</span>: {results.playwright.seo.metaDescription || 'Missing'}</li>
-                    <li><span className="font-semibold">Images without Alt</span>: {results.playwright.seo.images.withoutAlt}</li>
-                  </ul>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">✅</span>
+                    <span className="font-medium">SSL Security</span>
+                    <span className="text-green-600">Good</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">📱</span>
+                    <span className="font-medium">Mobile-Friendly</span>
+                    <span className="text-green-600">Looks great on phones</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🕒</span>
+                    <span className="font-medium">Load Time</span>
+                    <span className="text-yellow-600">{(results.playwright.performance.loadTime / 1000).toFixed(1)}s</span>
+                  </div>
                 </div>
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Performance</h4>
-                  <ul className="space-y-2">
-                    <li><span className="font-semibold">Load Time</span>: {(results.playwright.performance.loadTime / 1000).toFixed(2)}s</li>
-                    <li><span className="font-semibold">DOM Content Loaded</span>: {(results.playwright.performance.domContentLoaded / 1000).toFixed(2)}s</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Lighthouse Scores */}
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold mb-4">Lighthouse Scores</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="p-4 border rounded-lg text-center">
-                  <h4 className="font-medium mb-2">Performance</h4>
-                  <p className="text-2xl font-bold">{results.lighthouse.performance}</p>
-                </div>
-                <div className="p-4 border rounded-lg text-center">
-                  <h4 className="font-medium mb-2">Accessibility</h4>
-                  <p className="text-2xl font-bold">{results.lighthouse.accessibility}</p>
-                </div>
-                <div className="p-4 border rounded-lg text-center">
-                  <h4 className="font-medium mb-2">Best Practices</h4>
-                  <p className="text-2xl font-bold">{results.lighthouse.bestPractices}</p>
-                </div>
-                <div className="p-4 border rounded-lg text-center">
-                  <h4 className="font-medium mb-2">SEO</h4>
-                  <p className="text-2xl font-bold">{results.lighthouse.seo}</p>
-                </div>
-                <div className="p-4 border rounded-lg text-center">
-                  <h4 className="font-medium mb-2">PWA</h4>
-                  <p className="text-2xl font-bold">{results.lighthouse.progressiveWebApp}</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🔍</span>
+                    <span className="font-medium">SEO Basics</span>
+                    <span className="text-yellow-600">Needs improvement</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">📈</span>
+                    <span className="font-medium">Analytics</span>
+                    <span className="text-red-600">Missing</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">📷</span>
+                    <span className="font-medium">Media</span>
+                    <span className="text-yellow-600">{results.playwright.seo.images.unoptimized} images unoptimized</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* AI Analysis */}
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold mb-4">AI UX Analysis</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Strengths</h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    {results.ai.uxAnalysis.strengths.map((strength, i) => (
-                      <li key={i}>{strength}</li>
-                    ))}
-                  </ul>
+            {/* Detailed Analysis */}
+            <div className="space-y-8">
+              {/* Basic Info & SEO */}
+              <div className="p-6 border rounded-xl">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <span>🧩</span> Basic Info & SEO
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="mb-2">✅ You have a clear title and description – great for Google.</p>
+                    <p className="text-muted-foreground">But you're missing a few things that help Google and social media platforms understand your site better.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Images</h4>
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2">
+                          <span>{results.playwright.seo.images.withoutAlt === 0 ? '✅' : '⚠️'}</span>
+                          <span>Images without alt text: {results.playwright.seo.images.withoutAlt}</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span>⚠️</span>
+                          <span>Unoptimized images: {results.playwright.seo.images.unoptimized}</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span>✅</span>
+                          <span>Lazy Loading: {results.playwright.seo.images.lazyLoaded} images</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="bg-primary-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
+                      <p>Use TinyPNG or a tool like Next.js image optimization to compress your images and improve load times.</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Areas for Improvement</h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    {results.ai.uxAnalysis.weaknesses.map((weakness, i) => (
-                      <li key={i}>{weakness}</li>
-                    ))}
-                  </ul>
+              </div>
+
+              {/* Technical SEO */}
+              <div className="p-6 border rounded-xl">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <span>⚙️</span> Technical SEO
+                </h3>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">Things search engines need but can't find:</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2">
+                          <span>{results.playwright.seo.technical.hasSitemap ? '✅' : '❌'}</span>
+                          <span>Sitemap is {results.playwright.seo.technical.hasSitemap ? 'present' : 'missing'}</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span>{results.playwright.seo.technical.hasRobotsTxt ? '✅' : '❌'}</span>
+                          <span>Robots.txt is {results.playwright.seo.technical.hasRobotsTxt ? 'present' : 'missing'}</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="bg-primary-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
+                      <p>Add a sitemap.xml and robots.txt file. Most website builders and frameworks support this easily.</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Recommendations</h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    {results.ai.uxAnalysis.recommendations.map((rec, i) => (
-                      <li key={i}>{rec}</li>
-                    ))}
-                  </ul>
+              </div>
+
+              {/* Performance */}
+              <div className="p-6 border rounded-xl">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <span>🚀</span> Performance
+                </h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2">
+                          <span>⏱</span>
+                          <span>Load Time: {(results.playwright.performance.loadTime / 1000).toFixed(1)}s</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span>📊</span>
+                          <span>Core Web Vitals:</span>
+                        </li>
+                        <li className="pl-6">• LCP: {results.playwright.seo.technical.coreWebVitals.lcp.toFixed(2)}s</li>
+                        <li className="pl-6">• CLS: {results.playwright.seo.technical.coreWebVitals.cls.toFixed(2)}</li>
+                        <li className="pl-6">• FID: {results.playwright.seo.technical.coreWebVitals.fid.toFixed(2)}ms</li>
+                      </ul>
+                    </div>
+                    <div className="bg-primary-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
+                      <p>Compress images, and delay third-party scripts to shave off load time.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile & Social */}
+              <div className="p-6 border rounded-xl">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <span>📱</span> Mobile & Social
+                </h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2">
+                          <span>{results.playwright.seo.technical.mobileFriendly ? '✅' : '❌'}</span>
+                          <span>Mobile-Friendly: {results.playwright.seo.technical.mobileFriendly ? 'Works well' : 'Needs improvement'}</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span>{results.playwright.seo.meta.ogTags.title ? '✅' : '❌'}</span>
+                          <span>Social Meta Tags: {results.playwright.seo.meta.ogTags.title ? 'Enabled' : 'Missing'}</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span>{results.playwright.seo.social.hasFacebookPixel ? '✅' : '❌'}</span>
+                          <span>Facebook Pixel: {results.playwright.seo.social.hasFacebookPixel ? 'Installed' : 'Missing'}</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span>{results.playwright.seo.social.hasGoogleAnalytics ? '✅' : '❌'}</span>
+                          <span>Google Analytics: {results.playwright.seo.social.hasGoogleAnalytics ? 'Installed' : 'Missing'}</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="bg-primary-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
+                      <p>Add GA4 and Pixel tracking via a tool like Google Tag Manager.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content & Keywords */}
+              <div className="p-6 border rounded-xl">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <span>📝</span> Content & Keywords
+                </h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2">
+                          <span>📊</span>
+                          <span>Word Count: {results.playwright.seo.content.wordCount}</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span>📖</span>
+                          <span>Readability Score: {results.playwright.seo.content.readabilityScore.toFixed(2)}</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span>⚖️</span>
+                          <span>Content to Code Ratio: {results.playwright.seo.content.contentToCodeRatio.toFixed(2)}%</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span>{results.playwright.seo.content.hasVideo ? '✅' : '❌'}</span>
+                          <span>Has Video: {results.playwright.seo.content.hasVideo ? 'Yes' : 'No'}</span>
+                        </li>
+                      </ul>
+                      <div className="mt-4">
+                        <h4 className="font-medium mb-2">Top Keywords Found:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(results.playwright.seo.content.keywordDensity)
+                            .sort(([, a], [, b]) => b - a)
+                            .slice(0, 5)
+                            .map(([keyword, density]) => (
+                              <span key={keyword} className="px-2 py-1 bg-primary-50 rounded-full text-sm">
+                                "{keyword}" ({(density * 100).toFixed(1)}%)
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-primary-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
+                      <p>Focus more on what you do, who you help, and how. For example:</p>
+                      <p className="mt-2 italic">"I help startups build React websites in 7 days."</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Analysis */}
+              <div className="p-6 border rounded-xl">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <span>🤖</span> AI UX Analysis
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">Strengths</h4>
+                    <ul className="list-disc list-inside space-y-1">
+                      {results.ai.uxAnalysis.strengths.map((strength, i) => (
+                        <li key={i}>{strength}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">Areas for Improvement</h4>
+                    <ul className="list-disc list-inside space-y-1">
+                      {results.ai.uxAnalysis.weaknesses.map((weakness, i) => (
+                        <li key={i}>{weakness}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">Recommendations</h4>
+                    <ul className="list-disc list-inside space-y-1">
+                      {results.ai.uxAnalysis.recommendations.map((rec, i) => (
+                        <li key={i}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>

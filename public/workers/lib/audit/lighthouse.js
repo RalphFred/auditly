@@ -3,7 +3,7 @@ import path from 'path';
 export async function runLighthouseAudit(url) {
     return new Promise((resolve, reject) => {
         console.log('Starting Lighthouse worker...');
-        const worker = new Worker(path.join(process.cwd(), '/lib/audit/lighthouse-worker.js'), {
+        const worker = new Worker(path.join(process.cwd(), 'public/workers/lib/audit/lighthouse-worker.js'), {
             workerData: { url }
         });
         worker.on('message', (result) => {
