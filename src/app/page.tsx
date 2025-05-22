@@ -99,6 +99,13 @@ interface AuditResults {
       strengths: string[];
       weaknesses: string[];
       recommendations: string[];
+      quickFixes: {
+        seo: string;
+        performance: string;
+        mobile: string;
+        content: string;
+        accessibility: string;
+      };
     };
   };
 }
@@ -273,7 +280,7 @@ export default function Home() {
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
-                      <p>Use TinyPNG or a tool like Next.js image optimization to compress your images and improve load times.</p>
+                      <p>{results.ai.uxAnalysis.quickFixes.seo}</p>
                     </div>
                   </div>
                 </div>
@@ -301,7 +308,7 @@ export default function Home() {
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
-                      <p>Add a sitemap.xml and robots.txt file. Most website builders and frameworks support this easily.</p>
+                      <p>{results.ai.uxAnalysis.quickFixes.performance}</p>
                     </div>
                   </div>
                 </div>
@@ -331,7 +338,7 @@ export default function Home() {
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
-                      <p>Compress images, and delay third-party scripts to shave off load time.</p>
+                      <p>{results.ai.uxAnalysis.quickFixes.performance}</p>
                     </div>
                   </div>
                 </div>
@@ -366,7 +373,7 @@ export default function Home() {
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
-                      <p>Add GA4 and Pixel tracking via a tool like Google Tag Manager.</p>
+                      <p>{results.ai.uxAnalysis.quickFixes.mobile}</p>
                     </div>
                   </div>
                 </div>
@@ -406,7 +413,7 @@ export default function Home() {
                             .slice(0, 5)
                             .map(([keyword, density]) => (
                               <span key={keyword} className="px-2 py-1 bg-primary-50 rounded-full text-sm">
-                                "{keyword}" ({(density * 100).toFixed(1)}%)
+                                "{keyword}" ({density.toFixed(1)}%)
                               </span>
                             ))}
                         </div>
@@ -414,8 +421,7 @@ export default function Home() {
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
-                      <p>Focus more on what you do, who you help, and how. For example:</p>
-                      <p className="mt-2 italic">"I help startups build React websites in 7 days."</p>
+                      <p>{results.ai.uxAnalysis.quickFixes.content}</p>
                     </div>
                   </div>
                 </div>
@@ -450,6 +456,134 @@ export default function Home() {
                         <li key={i}>{rec}</li>
                       ))}
                     </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Fixes */}
+              <div className="space-y-4">
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-2">Basic Info & SEO</h3>
+                  <p className="text-sm text-gray-300 mb-2">
+                    {results.playwright.seo.title ? (
+                      <span className="text-green-400">✅ Title tag is present</span>
+                    ) : (
+                      <span className="text-red-400">❌ Missing title tag</span>
+                    )}
+                  </p>
+                  <p className="text-sm text-gray-300 mb-2">
+                    {results.playwright.seo.metaDescription ? (
+                      <span className="text-green-400">✅ Meta description is present</span>
+                    ) : (
+                      <span className="text-red-400">❌ Missing meta description</span>
+                    )}
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    {results.playwright.seo.schema.hasSchema ? (
+                      <span className="text-green-400">✅ Schema markup is present</span>
+                    ) : (
+                      <span className="text-red-400">❌ Missing schema markup</span>
+                    )}
+                  </p>
+                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
+                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.seo}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-2">Technical SEO</h3>
+                  <p className="text-sm text-gray-300 mb-2">
+                    {results.playwright.seo.meta.viewport ? (
+                      <span className="text-green-400">✅ Viewport meta tag is present</span>
+                    ) : (
+                      <span className="text-red-400">❌ Missing viewport meta tag</span>
+                    )}
+                  </p>
+                  <p className="text-sm text-gray-300 mb-2">
+                    {results.playwright.seo.meta.robots ? (
+                      <span className="text-green-400">✅ Robots meta tag is present</span>
+                    ) : (
+                      <span className="text-red-400">❌ Missing robots meta tag</span>
+                    )}
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    {results.playwright.seo.meta.canonical ? (
+                      <span className="text-green-400">✅ Canonical URL is present</span>
+                    ) : (
+                      <span className="text-red-400">❌ Missing canonical URL</span>
+                    )}
+                  </p>
+                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
+                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.performance}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-2">Performance</h3>
+                  <p className="text-sm text-gray-300 mb-2">
+                    Load Time: {results.playwright.performance.loadTime.toFixed(2)}s
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    DOM Content Loaded: {results.playwright.performance.domContentLoaded.toFixed(2)}s
+                  </p>
+                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
+                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.performance}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-2">Mobile & Social</h3>
+                  <p className="text-sm text-gray-300 mb-2">
+                    {results.playwright.seo.meta.ogTags.title ? (
+                      <span className="text-green-400">✅ Open Graph title is present</span>
+                    ) : (
+                      <span className="text-red-400">❌ Missing Open Graph title</span>
+                    )}
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    {results.playwright.seo.meta.ogTags.description ? (
+                      <span className="text-green-400">✅ Open Graph description is present</span>
+                    ) : (
+                      <span className="text-red-400">❌ Missing Open Graph description</span>
+                    )}
+                  </p>
+                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
+                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.mobile}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-2">Content & Keywords</h3>
+                  <p className="text-sm text-gray-300 mb-2">
+                    {results.playwright.seo.headings.h1.length > 0 ? (
+                      <span className="text-green-400">✅ H1 heading is present</span>
+                    ) : (
+                      <span className="text-red-400">❌ Missing H1 heading</span>
+                    )}
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    {results.playwright.seo.images.withoutAlt === 0 ? (
+                      <span className="text-green-400">✅ All images have alt text</span>
+                    ) : (
+                      <span className="text-red-400">❌ {results.playwright.seo.images.withoutAlt} images missing alt text</span>
+                    )}
+                  </p>
+                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
+                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.content}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-2">Accessibility</h3>
+                  <p className="text-sm text-gray-300">
+                    {results.playwright.seo.images.withoutAlt === 0 ? (
+                      <span className="text-green-400">✅ All images have alt text</span>
+                    ) : (
+                      <span className="text-red-400">❌ {results.playwright.seo.images.withoutAlt} images missing alt text</span>
+                    )}
+                  </p>
+                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
+                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.accessibility}</p>
                   </div>
                 </div>
               </div>
