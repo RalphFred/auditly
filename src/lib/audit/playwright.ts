@@ -92,21 +92,50 @@ export async function runPlaywrightAudit(url: string): Promise<PlaywrightAuditRe
   try {
     console.log('Launching Playwright browser...');
     browser = await chromium.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ],
+      headless: true
     });
     
     console.log('Creating new browser context...');
-    context = await browser.newContext();
+    context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    });
     
     console.log('Creating new page...');
     page = await context.newPage();
 
+    // Set a longer timeout for navigation
+    page.setDefaultNavigationTimeout(60000); // 60 seconds
+    page.setDefaultTimeout(60000); // 60 seconds
+
     console.log('Navigating to URL:', url);
     const startTime = Date.now();
-    await page.goto(url, { 
-      waitUntil: 'networkidle',
-      timeout: 30000 // 30 second timeout
-    });
+    
+    // Add error handling for navigation
+    try {
+      await page.goto(url, { 
+        waitUntil: 'networkidle',
+        timeout: 60000 // 60 second timeout
+      });
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Try again with a different waitUntil strategy
+      await page.goto(url, { 
+        waitUntil: 'domcontentloaded',
+        timeout: 60000
+      });
+    }
+
     const loadTime = Date.now() - startTime;
     console.log('Page loaded in', loadTime, 'ms');
 
@@ -303,81 +332,11 @@ export async function runPlaywrightAudit(url: string): Promise<PlaywrightAuditRe
       },
     };
   } catch (error) {
-    console.error('Playwright audit failed:', error);
-    return {
-      status: 'error',
-      seo: {
-        title: null,
-        metaDescription: null,
-        headings: { h1: [], h2: [], h3: [] },
-        images: { total: 0, withoutAlt: 0, oversized: 0, unoptimized: 0, lazyLoaded: 0 },
-        links: { total: 0, internal: 0, external: 0, broken: 0, noFollow: 0 },
-        meta: {
-          viewport: null,
-          robots: null,
-          canonical: null,
-          ogTags: {
-            title: null,
-            description: null,
-            image: null,
-            url: null,
-          },
-          twitterTags: {
-            card: null,
-            title: null,
-            description: null,
-            image: null,
-          },
-        },
-        schema: {
-          hasSchema: false,
-          types: [],
-          valid: false,
-          errors: [],
-        },
-        technical: {
-          hasSsl: false,
-          hasSitemap: false,
-          hasRobotsTxt: false,
-          mobileFriendly: false,
-          coreWebVitals: {
-            lcp: 0,
-            fid: 0,
-            cls: 0,
-          },
-          pageSpeed: {
-            loadTime: 0,
-            timeToFirstByte: 0,
-            domContentLoaded: 0,
-          },
-        },
-        content: {
-          wordCount: 0,
-          keywordDensity: {},
-          readabilityScore: 0,
-          contentToCodeRatio: 0,
-          hasVideo: false,
-          hasAudio: false,
-        },
-        social: {
-          hasFacebookPixel: false,
-          hasGoogleAnalytics: false,
-          hasTwitterPixel: false,
-        },
-      },
-      performance: {
-        loadTime: 0,
-        domContentLoaded: 0,
-      },
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    };
+    console.error('Playwright audit error:', error);
+    throw error;
   } finally {
-    try {
-      if (page) await page.close();
-      if (context) await context.close();
-      if (browser) await browser.close();
-    } catch (error) {
-      console.error('Error closing Playwright resources:', error);
-    }
+    if (page) await page.close();
+    if (context) await context.close();
+    if (browser) await browser.close();
   }
 } 
