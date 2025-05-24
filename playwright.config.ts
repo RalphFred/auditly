@@ -13,8 +13,7 @@ const config: PlaywrightTestConfig = {
     isMobile: false,
     locale: 'en-US',
     timezoneId: 'UTC',
-    deviceScaleFactor: 1,
-    reducedMotion: 'no-preference'
+    deviceScaleFactor: 1
   },
   timeout: 30000,
   workers: 1,
