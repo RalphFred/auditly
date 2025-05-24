@@ -7,9 +7,20 @@ const config: PlaywrightTestConfig = {
     ignoreHTTPSErrors: true,
     video: 'off',
     screenshot: 'off',
+    bypassCSP: true,
+    javaScriptEnabled: true,
+    hasTouch: false,
+    isMobile: false,
+    locale: 'en-US',
+    timezoneId: 'UTC',
+    deviceScaleFactor: 1,
+    reducedMotion: 'no-preference'
   },
-  timeout: 60000,
+  timeout: 30000,
   workers: 1,
+  retries: 0,
+  reporter: 'null',
+  preserveOutput: 'failures-only'
 };
 
 export default config; 
