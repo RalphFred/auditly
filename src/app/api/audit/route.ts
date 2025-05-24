@@ -4,6 +4,7 @@ import { runPlaywrightAudit } from '@/lib/audit/playwright';
 import { runAIAudit } from '@/lib/audit/ai';
 import { rateLimit } from '@/lib/rate-limit';
 import { headers } from 'next/headers';
+import { runLighthouseAudit } from '@/lib/audit/lighthouse';
 
 // Input validation schema
 const auditRequestSchema = z.object({
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
 async function performAudit(url: string) {
   try {
     // Run all audits in parallel    
-    const [playwrightResults, aiResults] = await Promise.all([
+    const [playwrightResults, lighthouseResults, aiResults] = await Promise.all([
       runPlaywrightAudit(url).catch(error => {
         console.error('=== PLAYWRIGHT AUDIT FAILED ===');
         console.error('Error:', error);
@@ -124,11 +125,37 @@ async function performAudit(url: string) {
               hasSchema: false,
               types: [],
             },
+            technical: {
+              hasSsl: false,
+              hasSitemap: false,
+              hasRobotsTxt: false,
+              mobileFriendly: false,
+              coreWebVitals: {
+                lcp: 0,
+                fid: 0,
+                cls: 0,
+              },
+              pageSpeed: {
+                loadTime: 0,
+                timeToFirstByte: 0,
+                domContentLoaded: 0,
+              },
+            },
           },
           performance: {
             loadTime: 0,
             domContentLoaded: 0,
           },
+        };
+      }),
+      runLighthouseAudit(url).catch(error => {
+        console.error('=== LIGHTHOUSE AUDIT FAILED ===');
+        console.error('Error:', error);
+        return {
+          status: 'error',
+          largestContentfulPaint: 0,
+          cumulativeLayoutShift: 0,
+          maxPotentialFID: 0,
         };
       }),
       runAIAudit(url).catch(error => {
@@ -148,8 +175,18 @@ async function performAudit(url: string) {
       }),
     ]);
 
+    // Merge Lighthouse metrics into Playwright results
+    if (playwrightResults.status === 'success' && lighthouseResults.status === 'success') {
+      playwrightResults.seo.technical.coreWebVitals = {
+        lcp: lighthouseResults.largestContentfulPaint / 1000, // Convert to seconds
+        fid: lighthouseResults.maxPotentialFID, // Already in milliseconds
+        cls: lighthouseResults.cumulativeLayoutShift,
+      };
+    }
+
     console.log('All audits completed');
     console.log('Playwright results:', JSON.stringify(playwrightResults, null, 2));
+    console.log('Lighthouse results:', JSON.stringify(lighthouseResults, null, 2));
     console.log('AI results:', JSON.stringify(aiResults, null, 2));
     
     return {

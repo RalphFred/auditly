@@ -280,7 +280,15 @@ export default function Home() {
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
-                      <p>{results.ai.uxAnalysis.quickFixes.seo}</p>
+                      <p>
+                        {results.playwright.seo.images.withoutAlt > 0 && results.playwright.seo.images.unoptimized > 0
+                          ? "Add alt text to all images and optimize image sizes to improve SEO and page load speed."
+                          : results.playwright.seo.images.withoutAlt > 0
+                          ? "Add descriptive alt text to all images to improve accessibility and SEO."
+                          : results.playwright.seo.images.unoptimized > 0
+                          ? "Optimize your images by compressing them and using modern formats like WebP to improve page load speed."
+                          : "Your images are well optimized! Consider implementing responsive images for different screen sizes."}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -308,7 +316,15 @@ export default function Home() {
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
-                      <p>{results.ai.uxAnalysis.quickFixes.performance}</p>
+                      <p>
+                        {!results.playwright.seo.technical.hasSitemap && !results.playwright.seo.technical.hasRobotsTxt 
+                          ? "Create both a sitemap.xml and robots.txt file in your root directory to help search engines better understand and crawl your website structure."
+                          : !results.playwright.seo.technical.hasSitemap 
+                          ? "Create a sitemap.xml file in your root directory to help search engines discover and index your pages."
+                          : !results.playwright.seo.technical.hasRobotsTxt 
+                          ? "Create a robots.txt file in your root directory to control how search engines crawl your website."
+                          : "Your technical SEO foundation looks good! Consider optimizing your sitemap with priority and change frequency attributes."}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -329,16 +345,19 @@ export default function Home() {
                         </li>
                         <li className="flex items-center gap-2">
                           <span>📊</span>
-                          <span>Core Web Vitals:</span>
+                          <span>DOM Content Loaded: {(results.playwright.performance.domContentLoaded / 1000).toFixed(1)}s</span>
                         </li>
-                        <li className="pl-6">• LCP: {results.playwright.seo.technical.coreWebVitals.lcp.toFixed(2)}s</li>
-                        <li className="pl-6">• CLS: {results.playwright.seo.technical.coreWebVitals.cls.toFixed(2)}</li>
-                        <li className="pl-6">• FID: {results.playwright.seo.technical.coreWebVitals.fid.toFixed(2)}ms</li>
                       </ul>
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
-                      <p>{results.ai.uxAnalysis.quickFixes.performance}</p>
+                      <p>
+                        {results.playwright.performance.loadTime > 3000
+                          ? "Your page load time is slow. Consider implementing code splitting, lazy loading, and optimizing your assets."
+                          : results.playwright.performance.domContentLoaded > 2000
+                          ? "Your DOM content loaded time is high. Optimize your JavaScript execution and reduce render-blocking resources."
+                          : "Your performance metrics look good! Consider implementing caching strategies for even better performance."}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -373,7 +392,21 @@ export default function Home() {
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
-                      <p>{results.ai.uxAnalysis.quickFixes.mobile}</p>
+                      <p>
+                        {!results.playwright.seo.technical.mobileFriendly && !results.playwright.seo.meta.ogTags.title && !results.playwright.seo.social.hasFacebookPixel && !results.playwright.seo.social.hasGoogleAnalytics
+                          ? "Improve mobile responsiveness, add Open Graph meta tags, and implement analytics tracking to better understand your audience."
+                          : !results.playwright.seo.technical.mobileFriendly
+                          ? "Optimize your website for mobile devices by ensuring responsive design and proper viewport settings."
+                          : !results.playwright.seo.meta.ogTags.title
+                          ? "Add Open Graph meta tags to improve how your content appears when shared on social media."
+                          : !results.playwright.seo.social.hasFacebookPixel && !results.playwright.seo.social.hasGoogleAnalytics
+                          ? "Implement analytics tracking to monitor your website's performance and user behavior."
+                          : !results.playwright.seo.social.hasFacebookPixel
+                          ? "Add Facebook Pixel to track conversions and optimize your Facebook ad campaigns."
+                          : !results.playwright.seo.social.hasGoogleAnalytics
+                          ? "Implement Google Analytics to gain insights into your website traffic and user behavior."
+                          : "Your mobile and social integration looks good! Consider adding more advanced tracking features like event tracking."}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -421,7 +454,17 @@ export default function Home() {
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
-                      <p>{results.ai.uxAnalysis.quickFixes.content}</p>
+                      <p>
+                        {results.playwright.seo.content.wordCount < 300
+                          ? "Increase your content length to at least 300 words for better SEO performance."
+                          : results.playwright.seo.content.readabilityScore < 60
+                          ? "Improve content readability by using shorter sentences and simpler language."
+                          : results.playwright.seo.content.contentToCodeRatio < 20
+                          ? "Increase your content-to-code ratio by adding more relevant content and reducing unnecessary code."
+                          : !results.playwright.seo.content.hasVideo
+                          ? "Consider adding video content to increase engagement and time on page."
+                          : "Your content looks good! Consider adding more internal links and expanding on your top keywords."}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -430,160 +473,66 @@ export default function Home() {
               {/* AI Analysis */}
               <div className="p-6 border rounded-xl">
                 <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                  <span>🤖</span> AI UX Analysis
+                  <span>🤖</span> Professional Analysis
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium mb-2">Strengths</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {results.ai.uxAnalysis.strengths.map((strength, i) => (
-                        <li key={i}>{strength}</li>
-                      ))}
-                    </ul>
+                <div className="space-y-6">
+                  {/* Overall Assessment */}
+                  <div className="p-4 bg-primary-50 rounded-lg">
+                    <h4 className="font-medium mb-2">Overall Assessment</h4>
+                    <p className="text-lg">
+                      {results.ai.uxAnalysis.overallScore >= 80 
+                        ? "Your website is performing exceptionally well! "
+                        : results.ai.uxAnalysis.overallScore >= 60
+                        ? "Your website is solid, but there's room for improvement. "
+                        : "Your website needs some attention to better serve your visitors. "}
+                      {results.ai.uxAnalysis.strengths.length > 0 && (
+                        <>
+                          I particularly like how you've {results.ai.uxAnalysis.strengths[0].toLowerCase()}
+                          {results.ai.uxAnalysis.strengths.length > 1 && ` and ${results.ai.uxAnalysis.strengths[1].toLowerCase()}`}.
+                        </>
+                      )}
+                    </p>
                   </div>
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium mb-2">Areas for Improvement</h4>
-                    <ul className="list-disc list-inside space-y-1">
+
+                  {/* Key Areas for Improvement */}
+                  <div className="p-4 border rounded-lg mb-6">
+                    <h4 className="font-medium mb-2">Areas That Need Attention</h4>
+                    <div className="space-y-4">
                       {results.ai.uxAnalysis.weaknesses.map((weakness, i) => (
-                        <li key={i}>{weakness}</li>
+                        <div key={i} className="flex items-start gap-3">
+                          <span className="text-red-500 mt-1">•</span>
+                          <p>{weakness}</p>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
+
+                  {/* Actionable Recommendations */}
                   <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium mb-2">Recommendations</h4>
-                    <ul className="list-disc list-inside space-y-1">
+                    <h4 className="font-medium mb-2">Here's What I Recommend</h4>
+                    <div className="space-y-4">
                       {results.ai.uxAnalysis.recommendations.map((rec, i) => (
-                        <li key={i}>{rec}</li>
+                        <div key={i} className="flex items-start gap-3">
+                          <span className="text-green-500 mt-1">→</span>
+                          <p>{rec}</p>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Quick Fixes */}
-              <div className="space-y-4">
-                <div className="bg-white/5 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-2">Basic Info & SEO</h3>
-                  <p className="text-sm text-gray-300 mb-2">
-                    {results.playwright.seo.title ? (
-                      <span className="text-green-400">✅ Title tag is present</span>
-                    ) : (
-                      <span className="text-red-400">❌ Missing title tag</span>
-                    )}
-                  </p>
-                  <p className="text-sm text-gray-300 mb-2">
-                    {results.playwright.seo.metaDescription ? (
-                      <span className="text-green-400">✅ Meta description is present</span>
-                    ) : (
-                      <span className="text-red-400">❌ Missing meta description</span>
-                    )}
-                  </p>
-                  <p className="text-sm text-gray-300">
-                    {results.playwright.seo.schema.hasSchema ? (
-                      <span className="text-green-400">✅ Schema markup is present</span>
-                    ) : (
-                      <span className="text-red-400">❌ Missing schema markup</span>
-                    )}
-                  </p>
-                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
-                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.seo}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white/5 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-2">Technical SEO</h3>
-                  <p className="text-sm text-gray-300 mb-2">
-                    {results.playwright.seo.meta.viewport ? (
-                      <span className="text-green-400">✅ Viewport meta tag is present</span>
-                    ) : (
-                      <span className="text-red-400">❌ Missing viewport meta tag</span>
-                    )}
-                  </p>
-                  <p className="text-sm text-gray-300 mb-2">
-                    {results.playwright.seo.meta.robots ? (
-                      <span className="text-green-400">✅ Robots meta tag is present</span>
-                    ) : (
-                      <span className="text-red-400">❌ Missing robots meta tag</span>
-                    )}
-                  </p>
-                  <p className="text-sm text-gray-300">
-                    {results.playwright.seo.meta.canonical ? (
-                      <span className="text-green-400">✅ Canonical URL is present</span>
-                    ) : (
-                      <span className="text-red-400">❌ Missing canonical URL</span>
-                    )}
-                  </p>
-                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
-                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.performance}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white/5 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-2">Performance</h3>
-                  <p className="text-sm text-gray-300 mb-2">
-                    Load Time: {results.playwright.performance.loadTime.toFixed(2)}s
-                  </p>
-                  <p className="text-sm text-gray-300">
-                    DOM Content Loaded: {results.playwright.performance.domContentLoaded.toFixed(2)}s
-                  </p>
-                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
-                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.performance}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white/5 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-2">Mobile & Social</h3>
-                  <p className="text-sm text-gray-300 mb-2">
-                    {results.playwright.seo.meta.ogTags.title ? (
-                      <span className="text-green-400">✅ Open Graph title is present</span>
-                    ) : (
-                      <span className="text-red-400">❌ Missing Open Graph title</span>
-                    )}
-                  </p>
-                  <p className="text-sm text-gray-300">
-                    {results.playwright.seo.meta.ogTags.description ? (
-                      <span className="text-green-400">✅ Open Graph description is present</span>
-                    ) : (
-                      <span className="text-red-400">❌ Missing Open Graph description</span>
-                    )}
-                  </p>
-                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
-                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.mobile}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white/5 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-2">Content & Keywords</h3>
-                  <p className="text-sm text-gray-300 mb-2">
-                    {results.playwright.seo.headings.h1.length > 0 ? (
-                      <span className="text-green-400">✅ H1 heading is present</span>
-                    ) : (
-                      <span className="text-red-400">❌ Missing H1 heading</span>
-                    )}
-                  </p>
-                  <p className="text-sm text-gray-300">
-                    {results.playwright.seo.images.withoutAlt === 0 ? (
-                      <span className="text-green-400">✅ All images have alt text</span>
-                    ) : (
-                      <span className="text-red-400">❌ {results.playwright.seo.images.withoutAlt} images missing alt text</span>
-                    )}
-                  </p>
-                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
-                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.content}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white/5 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-2">Accessibility</h3>
-                  <p className="text-sm text-gray-300">
-                    {results.playwright.seo.images.withoutAlt === 0 ? (
-                      <span className="text-green-400">✅ All images have alt text</span>
-                    ) : (
-                      <span className="text-red-400">❌ {results.playwright.seo.images.withoutAlt} images missing alt text</span>
-                    )}
-                  </p>
-                  <div className="mt-2 p-2 bg-blue-500/10 rounded">
-                    <p className="text-sm text-blue-300">Quick Fix: {results.ai.uxAnalysis.quickFixes.accessibility}</p>
+                  {/* Quick Wins */}
+                  <div className="p-4 bg-primary-50 rounded-lg">
+                    <h4 className="font-medium mb-2">Quick Wins You Can Implement Today</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="font-medium mb-2">SEO & Content</p>
+                        <p className="text-muted-foreground">{results.ai.uxAnalysis.quickFixes.seo}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium mb-2">Performance & Mobile</p>
+                        <p className="text-muted-foreground">{results.ai.uxAnalysis.quickFixes.performance}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
