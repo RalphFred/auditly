@@ -203,7 +203,7 @@ export default function Home() {
         )}
 
         {results && (
-          <div className="mt-12 max-w-4xl mx-auto">
+          <div className="mt-12 max-w-4xl mx-auto mb-20">
             <h2 className="text-2xl font-bold mb-6">Audit Results for {results.url}</h2>
             
             {/* Overview Summary */}
