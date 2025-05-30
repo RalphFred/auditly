@@ -1,4 +1,6 @@
 import { chromium } from 'playwright';
+import path from 'path';
+import fs from 'fs';
 
 export interface PlaywrightAuditResult {
   status: 'success' | 'error';
@@ -81,6 +83,10 @@ export interface PlaywrightAuditResult {
     loadTime: number;
     domContentLoaded: number;
   };
+  screenshots?: {
+    fullPage: string;
+    viewport: string;
+  };
   error?: string;
 }
 
@@ -88,8 +94,19 @@ export async function runPlaywrightAudit(url: string): Promise<PlaywrightAuditRe
   let browser = null;
   let context = null;
   let page = null;
+  const screenshotsDir = path.join(process.cwd(), 'public', 'screenshots');
 
   try {
+    // Create screenshots directory if it doesn't exist
+    if (!fs.existsSync(screenshotsDir)) {
+      fs.mkdirSync(screenshotsDir, { recursive: true });
+    }
+
+    // Generate unique filename based on URL and timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const domain = new URL(url).hostname;
+    const screenshotBaseName = `${domain}-${timestamp}`;
+
     console.log('Launching Playwright browser...');
     browser = await chromium.launch({
       args: [
@@ -138,6 +155,21 @@ export async function runPlaywrightAudit(url: string): Promise<PlaywrightAuditRe
 
     const loadTime = Date.now() - startTime;
     console.log('Page loaded in', loadTime, 'ms');
+
+    // Take screenshots after page load
+    console.log('Taking screenshots...');
+    const fullPagePath = path.join(screenshotsDir, `${screenshotBaseName}-full.png`);
+    const viewportPath = path.join(screenshotsDir, `${screenshotBaseName}-viewport.png`);
+
+    await page.screenshot({
+      path: fullPagePath,
+      fullPage: true
+    });
+
+    await page.screenshot({
+      path: viewportPath,
+      fullPage: false
+    });
 
     // Get SEO information
     console.log('Gathering SEO information...');
@@ -330,6 +362,10 @@ export async function runPlaywrightAudit(url: string): Promise<PlaywrightAuditRe
         loadTime,
         domContentLoaded: await page.evaluate(() => performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart),
       },
+      screenshots: {
+        fullPage: `/screenshots/${screenshotBaseName}-full.png`,
+        viewport: `/screenshots/${screenshotBaseName}-viewport.png`
+      }
     };
   } catch (error) {
     console.error('Playwright audit error:', error);

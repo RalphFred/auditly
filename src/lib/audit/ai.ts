@@ -1,4 +1,6 @@
-import { GoogleGenerativeAI, GenerativeModel, Content } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import fs from 'fs';
+import path from 'path';
 
 export interface AIAuditResult {
   status: 'success' | 'error';
@@ -10,195 +12,175 @@ export interface AIAuditResult {
     quickFixes: {
       seo: string;
       performance: string;
-      accessibility: string;
       mobile: string;
       content: string;
+      accessibility: string;
+    };
+    visualAnalysis?: {
+      layout: string;
+      colorScheme: string;
+      typography: string;
+      visualHierarchy: string;
+      mobileResponsiveness: string;
     };
   };
   error?: string;
 }
 
-export async function runAIAudit(url: string): Promise<AIAuditResult> {
+export async function runAIAudit(url: string, screenshots?: { fullPage: string; viewport: string }): Promise<AIAuditResult> {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
-  
   if (!apiKey) {
-    console.error('NEXT_PUBLIC_GOOGLE_AI_API_KEY is not set');
-    return {
-      status: 'error',
-      uxAnalysis: {
-        overallScore: 0,
-        strengths: [],
-        weaknesses: [],
-        recommendations: [],
-        quickFixes: {
-          seo: '',
-          performance: '',
-          accessibility: '',
-          mobile: '',
-          content: ''
-        }
-      },
-      error: 'AI analysis is not configured. Please set NEXT_PUBLIC_GOOGLE_AI_API_KEY in your environment variables.',
-    };
+    throw new Error('GOOGLE_AI_API_KEY is not set');
   }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   try {
-    console.log('Initializing Google AI...');
-    const genAI = new GoogleGenerativeAI(apiKey);
-    
-    console.log('Getting generative model...');
-    const model: GenerativeModel = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
-    });
+    // Prepare the base prompt
+    const basePrompt = `Analyze this website's UX/UI and provide a professional assessment. Consider:
+    1. Overall user experience and design quality
+    2. Content organization and readability
+    3. Navigation and information architecture
+    4. Mobile responsiveness
+    5. Visual design and branding
+    6. Call-to-actions and conversion elements
+    7. Accessibility considerations
 
-    console.log('Preparing prompt...');
-    const prompt = `
-      Analyze the following website for UX/UI design and user experience: ${url}
-      
-      You must respond with a valid JSON object in exactly this format:
-      {
-        "overallScore": 85,
-        "strengths": ["Clear navigation", "Responsive design", "Fast loading"],
-        "weaknesses": ["Missing alt text", "Poor contrast", "Complex forms"],
-        "recommendations": ["Add alt text to images", "Improve color contrast", "Simplify form fields"],
-        "quickFixes": {
-          "seo": "Add meta descriptions and optimize title tags",
-          "performance": "Compress images and enable caching",
-          "accessibility": "Add ARIA labels and improve keyboard navigation",
-          "mobile": "Fix viewport settings and touch targets",
-          "content": "Improve readability and add more engaging visuals"
-        }
-      }
+    Provide specific, actionable recommendations for improvement.`;
 
-      Rules:
-      1. overallScore must be a number between 0 and 100
-      2. strengths must be an array of 3-5 strings
-      3. weaknesses must be an array of 3-5 strings
-      4. recommendations must be an array of 3-5 strings
-      5. quickFixes must be an object with exactly these keys: seo, performance, accessibility, mobile, content
-      6. Each quickFix should be a single, actionable sentence
-      7. Do not include any text before or after the JSON
-      8. Do not use markdown formatting
-      9. Do not include any explanations or additional text
+    let prompt = basePrompt;
+    let imageParts: { inlineData: { data: string; mimeType: string } }[] = [];
 
-      Focus on:
-      - Visual design and aesthetics
-      - User interface elements and interactions
-      - Content organization and readability
-      - Mobile responsiveness
-      - Loading performance
-      - Accessibility features
-      
-      Keep each point concise and actionable.
-    `;
+    // If screenshots are provided, add them to the analysis
+    if (screenshots) {
+      prompt += `\n\nI've provided screenshots of the website. Please analyze the visual aspects including:
+      1. Layout and composition
+      2. Color scheme and contrast
+      3. Typography and readability
+      4. Visual hierarchy
+      5. Mobile responsiveness from the viewport screenshot`;
 
-    console.log('Starting chat...');
-    const chat = model.startChat({
-      history: [
+      // Read and encode the screenshots
+      const fullPagePath = path.join(process.cwd(), 'public', screenshots.fullPage);
+      const viewportPath = path.join(process.cwd(), 'public', screenshots.viewport);
+
+      const fullPageImage = await fs.promises.readFile(fullPagePath);
+      const viewportImage = await fs.promises.readFile(viewportPath);
+
+      imageParts = [
         {
-          role: "user",
-          parts: [{ text: prompt }]
-        }
-      ]
-    });
-
-    console.log('Generating content...');
-    const result = await chat.sendMessage([{ text: "Return only the JSON analysis, no additional text or formatting." }]);
-    const response = result.response;
-    const text = response.text();
-    
-    console.log('Raw AI response:', text);
-    console.log('Response type:', typeof text);
-    
-    console.log('Parsing AI response...');
-    try {
-      // Try to clean the response text before parsing
-      const cleanedText = text.trim().replace(/```json\n?|\n?```/g, '');
-      console.log('Cleaned response text:', cleanedText);
-      
-      // Parse the JSON response
-      const analysis = JSON.parse(cleanedText);
-      console.log('Parsed analysis:', analysis);
-
-      // Validate the response structure
-      if (!analysis.overallScore || 
-          !Array.isArray(analysis.strengths) || 
-          !Array.isArray(analysis.weaknesses) || 
-          !Array.isArray(analysis.recommendations) ||
-          !analysis.quickFixes ||
-          typeof analysis.quickFixes !== 'object' ||
-          !analysis.quickFixes.seo ||
-          !analysis.quickFixes.performance ||
-          !analysis.quickFixes.accessibility ||
-          !analysis.quickFixes.mobile ||
-          !analysis.quickFixes.content) {
-        console.error('Invalid response structure:', {
-          hasOverallScore: !!analysis.overallScore,
-          hasStrengths: Array.isArray(analysis.strengths),
-          hasWeaknesses: Array.isArray(analysis.weaknesses),
-          hasRecommendations: Array.isArray(analysis.recommendations),
-          hasQuickFixes: !!analysis.quickFixes,
-          quickFixesKeys: analysis.quickFixes ? Object.keys(analysis.quickFixes) : []
-        });
-        throw new Error('Invalid response structure from AI');
-      }
-
-      return {
-        status: 'success',
-        uxAnalysis: {
-          overallScore: analysis.overallScore,
-          strengths: analysis.strengths,
-          weaknesses: analysis.weaknesses,
-          recommendations: analysis.recommendations,
-          quickFixes: analysis.quickFixes
-        },
-      };
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      console.error('Raw response:', text);
-      return {
-        status: 'error',
-        uxAnalysis: {
-          overallScore: 0,
-          strengths: [],
-          weaknesses: [],
-          recommendations: [],
-          quickFixes: {
-            seo: '',
-            performance: '',
-            accessibility: '',
-            mobile: '',
-            content: ''
+          inlineData: {
+            data: viewportImage.toString('base64'),
+            mimeType: 'image/png'
           }
         },
-        error: 'Failed to parse AI analysis response',
-      };
-    }
-  } catch (error) {
-    console.error('AI audit failed:', error);
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-      console.error('API key status:', apiKey ? 'Present' : 'Missing');
-      console.error('API key length:', apiKey?.length || 0);
-    }
-    return {
-      status: 'error',
-      uxAnalysis: {
-        overallScore: 0,
-        strengths: [],
-        weaknesses: [],
-        recommendations: [],
-        quickFixes: {
-          seo: '',
-          performance: '',
-          accessibility: '',
-          mobile: '',
-          content: ''
+        {
+          inlineData: {
+            data: fullPageImage.toString('base64'),
+            mimeType: 'image/png'
+          }
         }
-      },
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      ];
+    }
+
+    // Generate the analysis
+    const result = await model.generateContent([prompt, ...imageParts]);
+    const response = await result.response;
+    const text = response.text();
+
+    // Parse the response and structure it
+    const analysis = parseAIResponse(text);
+
+    return {
+      status: 'success',
+      uxAnalysis: {
+        ...analysis,
+        visualAnalysis: screenshots ? parseVisualAnalysis(text) : undefined
+      }
     };
+  } catch (error) {
+    console.error('AI Audit Error:', error);
+    throw error;
   }
+}
+
+function parseAIResponse(text: string) {
+  // Extract overall score (assuming it's mentioned in the text)
+  const scoreMatch = text.match(/overall score:?\s*(\d+)/i);
+  const overallScore = scoreMatch ? parseInt(scoreMatch[1]) : 70;
+
+  // Extract strengths, weaknesses, and recommendations
+  const strengths: string[] = [];
+  const weaknesses: string[] = [];
+  const recommendations: string[] = [];
+
+  // Simple parsing logic - you might want to make this more robust
+  const lines = text.split('\n');
+  let currentSection = '';
+
+  for (const line of lines) {
+    if (line.toLowerCase().includes('strength')) {
+      currentSection = 'strengths';
+    } else if (line.toLowerCase().includes('weakness') || line.toLowerCase().includes('issue')) {
+      currentSection = 'weaknesses';
+    } else if (line.toLowerCase().includes('recommend') || line.toLowerCase().includes('suggestion')) {
+      currentSection = 'recommendations';
+    } else if (line.trim() && currentSection) {
+      if (currentSection === 'strengths') strengths.push(line.trim());
+      if (currentSection === 'weaknesses') weaknesses.push(line.trim());
+      if (currentSection === 'recommendations') recommendations.push(line.trim());
+    }
+  }
+
+  return {
+    overallScore,
+    strengths,
+    weaknesses,
+    recommendations,
+    quickFixes: {
+      seo: extractQuickFix(text, 'seo'),
+      performance: extractQuickFix(text, 'performance'),
+      mobile: extractQuickFix(text, 'mobile'),
+      content: extractQuickFix(text, 'content'),
+      accessibility: extractQuickFix(text, 'accessibility')
+    }
+  };
+}
+
+function parseVisualAnalysis(text: string) {
+  const visualAnalysis = {
+    layout: '',
+    colorScheme: '',
+    typography: '',
+    visualHierarchy: '',
+    mobileResponsiveness: ''
+  };
+
+  const lines = text.split('\n');
+  let currentSection = '';
+
+  for (const line of lines) {
+    if (line.toLowerCase().includes('layout')) {
+      currentSection = 'layout';
+    } else if (line.toLowerCase().includes('color')) {
+      currentSection = 'colorScheme';
+    } else if (line.toLowerCase().includes('typography') || line.toLowerCase().includes('font')) {
+      currentSection = 'typography';
+    } else if (line.toLowerCase().includes('hierarchy')) {
+      currentSection = 'visualHierarchy';
+    } else if (line.toLowerCase().includes('mobile') || line.toLowerCase().includes('responsive')) {
+      currentSection = 'mobileResponsiveness';
+    } else if (line.trim() && currentSection) {
+      visualAnalysis[currentSection as keyof typeof visualAnalysis] = line.trim();
+    }
+  }
+
+  return visualAnalysis;
+}
+
+function extractQuickFix(text: string, category: string): string {
+  const categoryRegex = new RegExp(`${category}.*?quick fix:?(.*?)(?=\\n|$)`, 'i');
+  const match = text.match(categoryRegex);
+  return match ? match[1].trim() : `No quick fix available for ${category}`;
 } 

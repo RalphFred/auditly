@@ -91,6 +91,10 @@ interface AuditResults {
       loadTime: number;
       domContentLoaded: number;
     };
+    screenshots: {
+      fullPage: string;
+      viewport: string;
+    } | null;
   };
   ai: {
     status: 'success' | 'error';
@@ -106,20 +110,36 @@ interface AuditResults {
         content: string;
         accessibility: string;
       };
+      visualAnalysis: {
+        layout: string;
+        colorScheme: string;
+        typography: string;
+        visualHierarchy: string;
+        mobileResponsiveness: string;
+      } | null;
     };
   };
+}
+
+interface LoadingState {
+  status: 'loading';
+  screenshots: {
+    fullPage: string;
+    viewport: string;
+  };
+  message: string;
 }
 
 export default function Home() {
   const id = useId();
   const [url, setUrl] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<LoadingState | null>(null);
   const [results, setResults] = useState<AuditResults | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setLoading({ status: 'loading', screenshots: { fullPage: '', viewport: '' }, message: 'Starting analysis...' });
     setError(null);
     setResults(null);
 
@@ -137,12 +157,27 @@ export default function Home() {
         throw new Error(error.error || 'Failed to perform audit');
       }
 
-      const data = await response.json();
-      setResults(data);
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('Failed to read response');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Parse the chunk
+        const chunk = new TextDecoder().decode(value);
+        const data = JSON.parse(chunk);
+
+        if (data.status === 'loading') {
+          setLoading(data);
+        } else {
+          setResults(data);
+          setLoading(null);
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
@@ -180,7 +215,7 @@ export default function Home() {
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={!!loading}
               className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md transition-[color,box-shadow] outline-none focus:z-10 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Submit search"
             >
@@ -190,9 +225,53 @@ export default function Home() {
         </form>
 
         {loading && (
-          <div className="text-center mt-8">
-            <p className="text-lg">Running audit...</p>
-            <p className="text-sm text-muted-foreground">This may take a few minutes</p>
+          <div className="mt-12 max-w-4xl mx-auto mb-20">
+            <div className="text-center mb-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent mb-4"></div>
+              <p className="text-lg">{loading.message}</p>
+            </div>
+
+            {/* Loading Screenshots */}
+            {loading.screenshots.viewport && (
+              <div className="p-6 border rounded-xl mb-8">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <span>📸</span> Website Preview
+                </h3>
+                <div className="relative aspect-[4/3] rounded-lg overflow-hidden">
+                  <Image
+                    src={loading.screenshots.viewport}
+                    alt="Viewport screenshot"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Analysis Progress */}
+            <div className="mt-8 space-y-4">
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-medium mb-2">Running Analysis</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                    <span>Analyzing page structure and content...</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                    <span>Evaluating visual design and user experience...</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                    <span>Checking performance and technical aspects...</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                    <span>Generating AI-powered recommendations...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -205,6 +284,37 @@ export default function Home() {
         {results && (
           <div className="mt-12 max-w-4xl mx-auto mb-20">
             <h2 className="text-2xl font-bold mb-6">Audit Results for {results.url}</h2>
+
+              {/* Screenshots */}
+              {results.playwright.screenshots && (
+                <div className="p-6 border rounded-xl">
+                  <div className="grid grid-cols-1">
+                     <div>
+                      <h4 className="font-medium mb-2">Viewport</h4>
+                      <div className="relative aspect-[4/3] rounded-lg overflow-hidden border">
+                        <Image
+                          src={results.playwright.screenshots.viewport}
+                          alt="Viewport screenshot"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    </div>
+                    {/* <div>
+                      <h4 className="font-medium mb-2">Full Page</h4>
+                      <div className="relative aspect-[4/3] rounded-lg overflow-hidden border">
+                        <Image
+                          src={results.playwright.screenshots.fullPage}
+                          alt="Full page screenshot"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    </div> */}
+                   
+                  </div>
+                </div>
+              )}
             
             {/* Overview Summary */}
             <div className="mb-8 p-6 bg-primary-50 rounded-xl">
@@ -225,7 +335,9 @@ export default function Home() {
                   <div className="flex items-center gap-2">
                     <span className="text-xl">🕒</span>
                     <span className="font-medium">Load Time</span>
-                    <span className="text-yellow-600">{(results.playwright.performance.loadTime / 1000).toFixed(1)}s</span>
+                    <span className={`${results.playwright.performance.loadTime > 2000 ? 'text-red-600' : results.playwright.performance.loadTime > 1000 ? 'text-yellow-600' : 'text-green-600'}`}>
+                      {(results.playwright.performance.loadTime / 1000).toFixed(2)}s
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -341,22 +453,28 @@ export default function Home() {
                       <ul className="space-y-2">
                         <li className="flex items-center gap-2">
                           <span>⏱</span>
-                          <span>Load Time: {(results.playwright.performance.loadTime / 1000).toFixed(1)}s</span>
+                          <span>Load Time: </span>
+                          <span className={`${results.playwright.performance.loadTime > 2000 ? 'text-red-600' : results.playwright.performance.loadTime > 1000 ? 'text-yellow-600' : 'text-green-600'}`}>
+                            {(results.playwright.performance.loadTime / 1000).toFixed(2)}s
+                          </span>
                         </li>
                         <li className="flex items-center gap-2">
                           <span>📊</span>
-                          <span>DOM Content Loaded: {(results.playwright.performance.domContentLoaded / 1000).toFixed(1)}s</span>
+                          <span>DOM Content Loaded: </span>
+                          <span className={`${results.playwright.performance.domContentLoaded > 1500 ? 'text-red-600' : results.playwright.performance.domContentLoaded > 800 ? 'text-yellow-600' : 'text-green-600'}`}>
+                            {(results.playwright.performance.domContentLoaded / 1000).toFixed(2)}s
+                          </span>
                         </li>
                       </ul>
                     </div>
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2">🛠 Quick Fix Tip</h4>
                       <p>
-                        {results.playwright.performance.loadTime > 3000
-                          ? "Your page load time is slow. Consider implementing code splitting, lazy loading, and optimizing your assets."
-                          : results.playwright.performance.domContentLoaded > 2000
-                          ? "Your DOM content loaded time is high. Optimize your JavaScript execution and reduce render-blocking resources."
-                          : "Your performance metrics look good! Consider implementing caching strategies for even better performance."}
+                        {results.playwright.performance.loadTime > 2000
+                          ? "Your page load time is **too slow**. Consider implementing code splitting, lazy loading, and optimizing your assets."
+                          : results.playwright.performance.domContentLoaded > 1500
+                          ? "Your DOM content loaded time is **high**. Optimize your JavaScript execution and reduce render-blocking resources."
+                          : "Your performance metrics look **good**! Consider implementing caching strategies for even better performance."}
                       </p>
                     </div>
                   </div>
@@ -477,63 +595,114 @@ export default function Home() {
                 </h3>
                 <div className="space-y-6">
                   {/* Overall Assessment */}
-                  <div className="p-4 bg-primary-50 rounded-lg">
-                    <h4 className="font-medium mb-2">Overall Assessment</h4>
-                    <p className="text-lg">
-                      {results.ai.uxAnalysis.overallScore >= 80 
-                        ? "Your website is performing exceptionally well! "
-                        : results.ai.uxAnalysis.overallScore >= 60
-                        ? "Your website is solid, but there's room for improvement. "
-                        : "Your website needs some attention to better serve your visitors. "}
-                      {results.ai.uxAnalysis.strengths.length > 0 && (
-                        <>
-                          I particularly like how you've {results.ai.uxAnalysis.strengths[0].toLowerCase()}
-                          {results.ai.uxAnalysis.strengths.length > 1 && ` and ${results.ai.uxAnalysis.strengths[1].toLowerCase()}`}.
-                        </>
-                      )}
-                    </p>
-                  </div>
+                  {results.ai.uxAnalysis.overallScore > 0 && (
+                    <div className="p-4 bg-primary-50 rounded-lg">
+                      <h4 className="font-medium mb-2">Overall Assessment</h4>
+                      <p className="text-lg">
+                        {results.ai.uxAnalysis.overallScore >= 80 
+                          ? "Your website is performing **exceptionally well**! "
+                          : results.ai.uxAnalysis.overallScore >= 60
+                          ? "Your website is **solid**, but there's room for improvement. "
+                          : "Your website **needs some attention** to better serve your visitors. "}
+                        {results.ai.uxAnalysis.strengths.length > 0 && (
+                          <>
+                            I particularly like how you've <strong>{results.ai.uxAnalysis.strengths[0].toLowerCase()}</strong>
+                            {results.ai.uxAnalysis.strengths.length > 1 && ` and <strong>${results.ai.uxAnalysis.strengths[1].toLowerCase()}</strong>`}.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Visual Analysis */}
+                  {results.ai.uxAnalysis.visualAnalysis && Object.values(results.ai.uxAnalysis.visualAnalysis).some(value => value && value.trim() !== '') && (
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-medium mb-4">Visual Design Analysis</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {results.ai.uxAnalysis.visualAnalysis.layout && (
+                          <div>
+                            <h5 className="font-medium mb-2">Layout & Structure</h5>
+                            <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: results.ai.uxAnalysis.visualAnalysis.layout.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                          </div>
+                        )}
+                        {results.ai.uxAnalysis.visualAnalysis.colorScheme && (
+                          <div>
+                            <h5 className="font-medium mb-2">Color Scheme</h5>
+                            <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: results.ai.uxAnalysis.visualAnalysis.colorScheme.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                          </div>
+                        )}
+                        {results.ai.uxAnalysis.visualAnalysis.typography && (
+                          <div>
+                            <h5 className="font-medium mb-2">Typography</h5>
+                            <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: results.ai.uxAnalysis.visualAnalysis.typography.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                          </div>
+                        )}
+                        {results.ai.uxAnalysis.visualAnalysis.visualHierarchy && (
+                          <div>
+                            <h5 className="font-medium mb-2">Visual Hierarchy</h5>
+                            <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: results.ai.uxAnalysis.visualAnalysis.visualHierarchy.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                          </div>
+                        )}
+                        {results.ai.uxAnalysis.visualAnalysis.mobileResponsiveness && (
+                          <div className="md:col-span-2">
+                            <h5 className="font-medium mb-2">Mobile Responsiveness</h5>
+                            <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: results.ai.uxAnalysis.visualAnalysis.mobileResponsiveness.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Key Areas for Improvement */}
-                  <div className="p-4 border rounded-lg mb-6">
-                    <h4 className="font-medium mb-2">Areas That Need Attention</h4>
-                    <div className="space-y-4">
-                      {results.ai.uxAnalysis.weaknesses.map((weakness, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span className="text-red-500 mt-1">•</span>
-                          <p>{weakness}</p>
-                        </div>
-                      ))}
+                  {results.ai.uxAnalysis.weaknesses.length > 0 && (
+                    <div className="p-4 border rounded-lg mb-6">
+                      <h4 className="font-medium mb-2">Areas That Need Attention</h4>
+                      <div className="space-y-4">
+                        {results.ai.uxAnalysis.weaknesses.map((weakness, i) => (
+                          <div key={i} className="flex items-start gap-3">
+                            <span className="text-red-500 mt-1">•</span>
+                            <p dangerouslySetInnerHTML={{ __html: weakness.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Actionable Recommendations */}
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium mb-2">Here's What I Recommend</h4>
-                    <div className="space-y-4">
-                      {results.ai.uxAnalysis.recommendations.map((rec, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span className="text-green-500 mt-1">→</span>
-                          <p>{rec}</p>
-                        </div>
-                      ))}
+                  {results.ai.uxAnalysis.recommendations.length > 0 && (
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-medium mb-2">Here's What I Recommend</h4>
+                      <div className="space-y-4">
+                        {results.ai.uxAnalysis.recommendations.map((rec, i) => (
+                          <div key={i} className="flex items-start gap-3">
+                            <span className="text-green-500 mt-1">→</span>
+                            <p dangerouslySetInnerHTML={{ __html: rec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Quick Wins */}
-                  <div className="p-4 bg-primary-50 rounded-lg">
-                    <h4 className="font-medium mb-2">Quick Wins You Can Implement Today</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="font-medium mb-2">SEO & Content</p>
-                        <p className="text-muted-foreground">{results.ai.uxAnalysis.quickFixes.seo}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium mb-2">Performance & Mobile</p>
-                        <p className="text-muted-foreground">{results.ai.uxAnalysis.quickFixes.performance}</p>
+                  {Object.values(results.ai.uxAnalysis.quickFixes).some(value => value && value.trim() !== '') && (
+                    <div className="p-4 bg-primary-50 rounded-lg">
+                      <h4 className="font-medium mb-2">Quick Wins You Can Implement Today</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {results.ai.uxAnalysis.quickFixes.seo && (
+                          <div>
+                            <p className="font-medium mb-2">SEO & Content</p>
+                            <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: results.ai.uxAnalysis.quickFixes.seo.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                          </div>
+                        )}
+                        {results.ai.uxAnalysis.quickFixes.performance && (
+                          <div>
+                            <p className="font-medium mb-2">Performance & Mobile</p>
+                            <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: results.ai.uxAnalysis.quickFixes.performance.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
